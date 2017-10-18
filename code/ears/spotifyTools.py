@@ -1,7 +1,12 @@
+from __future__ import print_function
+
 import spotipy
+import spotipy.oauth2 as oauth2
 import cPickle as pickle
 import os
 import math
+
+from spotify_auth import client_id, client_secret
 
 TRACKS_PER_CALL = 10
 
@@ -14,7 +19,13 @@ class SpotifySearches(object):
     given user.'''
 
     def __init__(self, userID="", cachePath="", debug=False):
-        self.api = spotipy.Spotify()
+
+        self.credentials = oauth2.SpotifyClientCredentials(
+            client_id=client_id, client_secret=client_secret
+        )
+        self.token = self.credentials.get_access_token()
+
+        self.api = spotipy.Spotify(auth=self.token)
         self.cachePath = cachePath
         self.debug = debug
 
@@ -36,7 +47,7 @@ class SpotifySearches(object):
 
         if len(items) == 0:
             if self.debug:
-                print "Found no results for search {}".format(artistName)
+                print("Found no results for search {}".format(artistName))
                 return None
         artist = items[0]
 
@@ -49,8 +60,8 @@ class SpotifySearches(object):
             allAlbums.extend(albumRes['items'])
 
         if self.debug:
-            print "Found {} albums from search {}".format(len(allAlbums),
-                                                          artistName)
+            print("Found {} albums from search {}".format(len(allAlbums),
+                                                          artistName))
 
         uniqueAlbumNames = set()
         uniqueAlbums = []
@@ -90,7 +101,7 @@ class SpotifySearches(object):
         trackIDs = [x['id'] for x in tracks]
         numCalls = int(math.ceil(len(trackIDs) / float(TRACKS_PER_CALL)))
         fullTrackList = []
-        for call in xrange(numCalls):
+        for call in range(numCalls):
             lower = call * TRACKS_PER_CALL
             upper = min(len(trackIDs), (call + 1) * TRACKS_PER_CALL)
             IDsForCall = trackIDs[lower:upper]
@@ -102,21 +113,21 @@ class SpotifySearches(object):
             return sortedTracks
 
         if self.debug:
-            print "Sorting type {} is not supported!".format(sortBy)
+            print("Sorting type {} is not supported!".format(sortBy))
         return tracks
 
 
 if __name__ == "__main__":
 
-    searches = SpotifySearches(debug=True)
+    searches = SpotifySearches(debug=False)
     res = searches.artist_search("kanye west", numAlbums=2)
     for r in res:
         tracks = searches.album_tracks(r['id'])
         for t in tracks:
-            print t["name"]
+            print(t)
 
-    print
+    print()
 
     sortTracks = searches.artist_tracks("kanye west", numAlbums=10)
     for t in sortTracks:
-        print t["name"]
+        print(t.keys())
